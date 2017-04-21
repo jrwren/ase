@@ -42,8 +42,16 @@ func TestServer(t *testing.T) {
 	if err == nil {
 		t.Error("expected error reading a deleted test blob")
 	}
-	err = bs.CreateBlockBlobFromReader("testc", "test2", 6, strings.NewReader(" world"), nil)
+	err = bs.CreateBlockBlobFromReader("testc", "test2/t", 6, strings.NewReader(" world"), nil)
 	if err != nil {
 		t.Error(err)
+	}
+	b, err = bs.GetBlob("testc", "test2/t")
+	if err != nil {
+		t.Error(err)
+	}
+	s, err = ioutil.ReadAll(b)
+	if string(s) != " world" {
+		t.Error(`expected to read "world" from test blob`)
 	}
 }

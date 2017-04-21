@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 	//	"github.com/Azure/azure-sdk-for-go/storage"
 )
@@ -81,8 +80,10 @@ func (srv *server) serveHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (srv *server) resourceForURL(u *url.URL) (r resource) {
-	head, blobName := path.Split(u.Path)
-	acct, containerName := path.Split(strings.TrimRight(head, "/"))
+	pathparts := strings.SplitN(u.Path, "/", 3)
+	acct := pathparts[0]
+	containerName := pathparts[1]
+	blobName := pathparts[2]
 	if acct != "/devstoreaccount1/" {
 		log.Printf("unexpected account name %s\n", acct)
 	}
