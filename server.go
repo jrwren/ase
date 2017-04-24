@@ -80,12 +80,12 @@ func (srv *server) serveHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (srv *server) resourceForURL(u *url.URL) (r resource) {
-	pathparts := strings.SplitN(u.Path, "/", 3)
-	acct := pathparts[0]
-	containerName := pathparts[1]
-	blobName := pathparts[2]
-	if acct != "/devstoreaccount1/" {
-		log.Printf("unexpected account name %s\n", acct)
+	pathparts := strings.SplitN(u.Path, "/", 4)
+	acct := pathparts[1]
+	containerName := pathparts[2]
+	blobName := pathparts[3]
+	if acct != "devstoreaccount1" {
+		log.Printf("unexpected account name %s in url %s\n", acct, u)
 	}
 
 	c, ok := srv.containers[containerName]
@@ -133,7 +133,7 @@ func (b *blob) get(w http.ResponseWriter, req *http.Request) {
 		w.Write(b.data)
 		return
 	}
-	w.WriteHeader(201)
+	w.WriteHeader(404)
 }
 func (b *blob) post(w http.ResponseWriter, req *http.Request) {
 }
