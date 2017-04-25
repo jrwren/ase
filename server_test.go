@@ -12,10 +12,11 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	err := Start()
+	ase, err := Start()
 	if err != nil {
 		t.Error(err)
 	}
+	defer ase.Close()
 	sc, err := storage.NewBasicClient(storage.StorageEmulatorAccountName, "")
 	if err != nil {
 		t.Error(err)
@@ -53,5 +54,22 @@ func TestServer(t *testing.T) {
 	s, err = ioutil.ReadAll(b)
 	if string(s) != " world" {
 		t.Error(`expected to read "world" from test blob`)
+	}
+}
+
+func TestDeleteNonExistant(t *testing.T) {
+	ase, err := Start()
+	if err != nil {
+		t.Error(err)
+	}
+	defer ase.Close()
+	sc, err := storage.NewBasicClient(storage.StorageEmulatorAccountName, "")
+	if err != nil {
+		t.Error(err)
+	}
+	bs := sc.GetBlobService()
+	err = bs.DeleteBlob("deleteman", "zomg/why/not/delete", nil)
+	if err == nil {
+		t.Error("expected error deleting a non existant blob")
 	}
 }

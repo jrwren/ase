@@ -23,24 +23,39 @@ const ( // from https://github.com/Azure/azure-sdk-for-go/blob/master/storage/cl
 	storageEmulatorQueue = "127.0.0.1:10001"
 )
 
-func Start() error {
+type Reseter interface {
+	Reset()
+}
+
+type CloseReseter interface {
+	Reset()
+	Close() error
+}
+
+func Start() (CloseReseter, error) {
+	log.Println("ase Start() ***")
 	l, err := net.Listen("tcp", storageEmulatorBlob)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	srv := &server{
 		listener:   l,
 		containers: make(map[string]*container),
 	}
-	go http.Serve(l, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		srv.serveHTTP(w, req)
-	}))
-	return nil
+	srv.hserver = &http.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			srv.serveHTTP(w, req)
+		}),
+	}
+
+	go srv.hserver.Serve(l)
+	return srv, nil
 }
 
 type server struct {
 	listener   net.Listener
 	containers map[string]*container
+	hserver    *http.Server
 }
 
 type container struct {
@@ -77,6 +92,15 @@ func (srv *server) serveHTTP(w http.ResponseWriter, req *http.Request) {
 	default:
 		panic(fmt.Sprintf("MethodNotAllowed: unknown http request method %q", req.Method))
 	}
+}
+
+func (srv *server) Reset() {
+	log.Println("ase Reset() ***")
+	srv.containers = make(map[string]*container)
+}
+
+func (srv *server) Close() error {
+	return srv.hserver.Close()
 }
 
 func (srv *server) resourceForURL(u *url.URL) (r resource) {
@@ -119,13 +143,14 @@ func (c *container) post(w http.ResponseWriter, req *http.Request) {
 func (c *container) put(w http.ResponseWriter, req *http.Request) {
 }
 func (b *blob) delete(w http.ResponseWriter, req *http.Request) {
-	_, ok := b.container.blobs[b.name]
-	if !ok {
+	if b.data == nil {
 		w.WriteHeader(404)
+		log.Printf("delete %s 404", b.name)
 		return
 	}
 	delete(b.container.blobs, b.name)
 	w.WriteHeader(202)
+	log.Printf("delete %s 202", b.name)
 }
 func (b *blob) get(w http.ResponseWriter, req *http.Request) {
 	if len(b.data) > 0 {
